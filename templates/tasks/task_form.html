@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>{{ page_title }}</h1>
+    <p>Modify the task details and save the updated status.</p>
+</section>
+
+<section class="panel" style="max-width: 720px;">
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{{ button_label }}</button>
+        <a class="button-link alt" href="{% url 'task_list' %}">Back to List</a>
+    </form>
+</section>
+{% endblock %}

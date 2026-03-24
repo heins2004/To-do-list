@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}To-Do CRUD App{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>To-Do List CRUD Website</h1>
+    <p>Add, view, edit, delete, and track the status of your tasks in one place.</p>
+</section>
+
+<section class="grid">
+    <div class="panel">
+        <h2>Add New Task</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Save Task</button>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>Task List</h2>
+        {% if tasks %}
+            <div class="task-list">
+                {% for task in tasks %}
+                    <article class="task-card {% if task.status == 'completed' %}completed{% endif %}">
+                        <div class="task-head">
+                            <div>
+                                <h3>{{ task.title }}</h3>
+                                <p>{{ task.description|default:"No description added." }}</p>
+                            </div>
+                            <span class="badge {{ task.status }}">{{ task.get_status_display }}</span>
+                        </div>
+                        <div class="task-meta">
+                            Created: {{ task.created_at|date:"M d, Y h:i A" }} |
+                            Updated: {{ task.updated_at|date:"M d, Y h:i A" }}
+                        </div>
+                        <div class="task-actions">
+                            <a class="button-link alt" href="{% url 'task_update' task.pk %}">Edit</a>
+                            <a class="button-link alt" href="{% url 'task_toggle_status' task.pk %}">
+                                Mark as {% if task.status == 'pending' %}Completed{% else %}Pending{% endif %}
+                            </a>
+                            <a class="button-link danger" href="{% url 'task_delete' task.pk %}">Delete</a>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">No tasks yet. Add your first task from the form.</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
