@@ -43,16 +43,18 @@ Recommended steps:
    - one web service
    - one PostgreSQL database
 4. After the first deploy, open the Render Shell and run:
-
-```bash
-python manage.py createsuperuser
-```
+4. On Render free tier, add these environment variables in the service settings:
+   - `DJANGO_SUPERUSER_USERNAME`
+   - `DJANGO_SUPERUSER_EMAIL`
+   - `DJANGO_SUPERUSER_PASSWORD`
+5. Redeploy once. The startup command will run `python manage.py bootstrap_superuser` automatically.
 
 Important notes:
 
 - The Render deployment path uses PostgreSQL, not MySQL.
 - Local development can still use SQLite or MySQL via `.env`.
 - Set any custom domain in `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS`.
+- After the first successful admin creation, remove `DJANGO_SUPERUSER_PASSWORD` from Render or rotate it.
 
 Official docs used:
 
