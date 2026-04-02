@@ -10,8 +10,7 @@ services:
     runtime: python
     plan: free
     buildCommand: "bash build.sh"
-    preDeployCommand: "python manage.py migrate"
-    startCommand: "gunicorn todo_site.wsgi:application"
+    startCommand: "python manage.py migrate && gunicorn todo_site.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
