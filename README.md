@@ -1,4 +1,4 @@
-# Habit Tracker + Task Manager
+# DoMatrix
 
 A Django productivity dashboard that combines one-time tasks, daily habits, XP progression, streak tracking, a monthly calendar, and achievement badges in a dark blue RPG-inspired UI.
 
@@ -42,7 +42,6 @@ Recommended steps:
 3. Render will read `render.yaml`, create:
    - one web service
    - one PostgreSQL database
-4. After the first deploy, open the Render Shell and run:
 4. Deploy the service and open the generated Render URL.
 
 Important notes:

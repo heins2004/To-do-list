@@ -6,7 +6,7 @@ databases:
 
 services:
   - type: web
-    name: habit-tracker-dashboard
+    name: domatrix
     runtime: python
     plan: free
     buildCommand: "bash build.sh"

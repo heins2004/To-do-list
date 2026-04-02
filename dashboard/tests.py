@@ -6,4 +6,4 @@ class DashboardViewTests(TestCase):
     def test_dashboard_home_renders(self):
         response = self.client.get(reverse("dashboard_home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Habit Tracker + Task Manager")
+        self.assertContains(response, "DoMatrix")
