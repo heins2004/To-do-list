@@ -1,6 +1,11 @@
 import os
 from pathlib import Path
 
+try:
+    import dj_database_url
+except ImportError:  # pragma: no cover
+    dj_database_url = None
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -32,8 +37,26 @@ def env_bool(key: str, default: bool = False) -> bool:
 
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-local-dev-key")
-DEBUG = env_bool("DJANGO_DEBUG", True)
-ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", "*").split(",") if host.strip()]
+IS_RENDER = bool(env("RENDER")) or bool(env("RENDER_EXTERNAL_HOSTNAME"))
+SECRET_KEY = env("DJANGO_SECRET_KEY") or env("SECRET_KEY") or "django-insecure-local-dev-key"
+DEBUG = env_bool("DJANGO_DEBUG", not IS_RENDER)
+
+allowed_hosts = {host.strip() for host in env("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if host.strip()}
+render_hostname = env("RENDER_EXTERNAL_HOSTNAME")
+if render_hostname:
+    allowed_hosts.add(render_hostname)
+if DEBUG:
+    allowed_hosts.add("*")
+ALLOWED_HOSTS = sorted(allowed_hosts)
+
+csrf_trusted_origins = {
+    origin.strip()
+    for origin in env("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+}
+if render_hostname:
+    csrf_trusted_origins.add(f"https://{render_hostname}")
+CSRF_TRUSTED_ORIGINS = sorted(csrf_trusted_origins)
 
 
 INSTALLED_APPS = [
@@ -60,6 +83,7 @@ MIDDLEWARE = [
 
 if not DEBUG:
     MIDDLEWARE.insert(1, "django.middleware.gzip.GZipMiddleware")
+    MIDDLEWARE.insert(2, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 
 ROOT_URLCONF = "todo_site.urls"
@@ -82,8 +106,17 @@ TEMPLATES = [
 WSGI_APPLICATION = "todo_site.wsgi.application"
 
 
+database_url = env("DATABASE_URL")
 DB_ENGINE = env("DB_ENGINE", "sqlite").lower()
-if DB_ENGINE == "mysql":
+if database_url and dj_database_url:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            database_url,
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
+    }
+elif DB_ENGINE == "mysql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
@@ -125,11 +158,22 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        if not DEBUG
+        else "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 SECURE_BROWSER_XSS_FILTER = not DEBUG
+SECURE_SSL_REDIRECT = not DEBUG and IS_RENDER
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True

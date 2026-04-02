@@ -1,0 +1,27 @@
+databases:
+  - name: habit-tracker-db
+    plan: free
+    databaseName: habit_tracker
+    user: habit_tracker_user
+
+services:
+  - type: web
+    name: habit-tracker-dashboard
+    runtime: python
+    plan: free
+    buildCommand: "bash build.sh"
+    preDeployCommand: "python manage.py migrate"
+    startCommand: "gunicorn todo_site.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: habit-tracker-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "127.0.0.1,localhost"
