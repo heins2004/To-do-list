@@ -1,0 +1,11 @@
+<div class="selected-day-list">
+    <p class="selected-date-label">{{ selected_date }}</p>
+    {% for item in selected_items %}
+        <article class="day-entry state-{{ item.state }}">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.kind|title }} • {{ item.meta }}</span>
+        </article>
+    {% empty %}
+        <div class="empty-card compact">No missions assigned to this date.</div>
+    {% endfor %}
+</div>

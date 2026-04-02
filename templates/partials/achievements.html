@@ -1,0 +1,12 @@
+<div class="achievement-grid">
+    {% for achievement in achievements %}
+        <article class="achievement-card {% if achievement.unlocked %}unlocked{% endif %}">
+            <div class="achievement-icon">{{ achievement.icon }}</div>
+            <h3>{{ achievement.name }}</h3>
+            <p>{{ achievement.description }}</p>
+            <span class="state-pill {% if achievement.unlocked %}completed{% else %}pending{% endif %}">
+                {% if achievement.unlocked %}Unlocked{% else %}Locked{% endif %}
+            </span>
+        </article>
+    {% endfor %}
+</div>

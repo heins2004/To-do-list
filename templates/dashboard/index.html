@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Habit Tracker + Task Manager{% endblock %}
+
+{% block content %}
+<main class="app-shell">
+    <div class="background-grid"></div>
+    <section class="dashboard-frame">
+        <header class="top-banner">
+            <div>
+                <p class="eyebrow">Consistency Core System</p>
+                <h1>DoMatrix</h1>
+                <p class="subcopy">A system  to organize productivity, track progress, and manage daily goals efficiently.</p>
+            </div>
+            <div class="alert-chip">
+                <span class="alert-dot"></span>
+                <span><strong id="alert-count">{{ payload.meta.overdue_count }}</strong> overdue alerts</span>
+            </div>
+        </header>
+
+        <section class="dashboard-grid">
+            <aside class="stack-column">
+                <article class="panel profile-panel">
+                    <div class="panel-title-row">
+                        <span class="panel-title">Level Profile</span>
+                        <span class="panel-tag">System</span>
+                    </div>
+                    <div class="avatar-core">
+                        <div class="avatar-ring"></div>
+                        <div class="avatar-sigil">S</div>
+                    </div>
+                    <div id="stats-panel">
+                        {% include "partials/stats.html" with meta=payload.meta stats=payload.stats progress=payload.progress %}
+                    </div>
+                </article>
+
+                <article class="panel form-panel">
+                    <div class="panel-title-row">
+                        <span class="panel-title">Add Task</span>
+                        <span class="panel-tag accent">Quest</span>
+                    </div>
+                    <form id="task-form" class="command-form" action="{% url 'task_create' %}" method="post">
+                        {% csrf_token %}
+                        <label>Title</label>
+                        <input type="text" name="title" placeholder="Ship the dashboard revamp" required>
+                        <label>Description</label>
+                        <textarea name="description" rows="3" placeholder="Add notes, context, or blockers"></textarea>
+                        <div class="form-split">
+                            <div>
+                                <label>Deadline</label>
+                                <input type="date" name="due_date" value="{{ payload.meta.today }}" required>
+                            </div>
+                            <div>
+                                <label>Type</label>
+                                <select name="type">
+                                    <option value="boss">High</option>
+                                    <option value="main">Mid</option>
+                                    <option value="side">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                        <label>XP Reward</label>
+                        <input type="number" name="xp_reward" min="10" step="10" value="40">
+                        <button type="submit" class="primary-button">Forge Task</button>
+                    </form>
+                </article>
+
+                <article class="panel form-panel">
+                    <div class="panel-title-row">
+                        <span class="panel-title">Add Habit</span>
+                        <span class="panel-tag success">Daily</span>
+                    </div>
+                    <form id="habit-form" class="command-form" action="{% url 'habit_create' %}" method="post">
+                        {% csrf_token %}
+                        <label>Title</label>
+                        <input type="text" name="title" placeholder="Morning focus ritual" required>
+                        <label>Description</label>
+                        <textarea name="description" rows="3" placeholder="Define the repeatable action"></textarea>
+                        <div class="form-split">
+                            <div>
+                                <label>Start Date</label>
+                                <input type="date" name="start_date" value="{{ payload.meta.today }}" required>
+                            </div>
+                            <div>
+                                <label>XP Reward</label>
+                                <input type="number" name="xp_reward" min="10" step="5" value="25">
+                            </div>
+                        </div>
+                        <button type="submit" class="primary-button alt">Bind Habit</button>
+                    </form>
+                </article>
+            </aside>
+
+            <section class="main-column">
+                <div class="two-column-strip">
+                    <article class="panel">
+                        <div class="panel-title-row">
+                            <span class="panel-title">Task Board</span>
+                            <span class="panel-tag">Objectives</span>
+                        </div>
+                        <div id="task-list-panel">
+                            {% include "partials/task_list.html" with tasks=payload.tasks %}
+                        </div>
+                    </article>
+
+                    <article class="panel">
+                        <div class="panel-title-row">
+                            <span class="panel-title">Habit Tracker</span>
+                            <span class="panel-tag success">Streaks</span>
+                        </div>
+                        <div id="habit-list-panel">
+                            {% include "partials/habit_list.html" with habits=payload.habits meta=payload.meta %}
+                        </div>
+                    </article>
+                </div>
+
+                <div class="two-column-strip lower-strip">
+                    <article class="panel wide-panel">
+                        <div class="panel-title-row">
+                            <span class="panel-title">Mission Calendar</span>
+                            <span class="panel-tag danger">Alerts</span>
+                        </div>
+                        <div id="calendar-panel">
+                            {% include "partials/calendar.html" with calendar=payload.calendar %}
+                        </div>
+                    </article>
+
+                    <article class="panel side-panel">
+                        <div class="panel-title-row">
+                            <span class="panel-title">Selected Day</span>
+                            <span class="panel-tag" id="selected-date-tag">{{ payload.meta.selected_date }}</span>
+                        </div>
+                        <div id="selected-day-panel">
+                            {% include "partials/selected_day.html" with selected_items=payload.selected_items selected_date=payload.meta.selected_date %}
+                        </div>
+                    </article>
+                </div>
+
+                <article class="panel">
+                    <div class="panel-title-row">
+                        <span class="panel-title">Achievement Showcase</span>
+                        <span class="panel-tag">Badges</span>
+                    </div>
+                    <div id="achievement-panel">
+                        {% include "partials/achievements.html" with achievements=payload.achievements %}
+                    </div>
+                </article>
+            </section>
+        </section>
+    </section>
+</main>
+{% endblock %}

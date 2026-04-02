@@ -1,0 +1,20 @@
+<div class="card-list">
+    {% for task in tasks %}
+        <article class="quest-card state-{{ task.state }}">
+            <div class="quest-copy">
+                <div class="quest-header">
+                    <h3>{{ task.title }}</h3>
+                    <span class="state-pill {{ task.state }}">{{ task.state|title }}</span>
+                </div>
+                <p>{{ task.description|default:"No tactical notes attached." }}</p>
+                <div class="quest-meta">{{ task.type_label }} • Due {{ task.due_label }} • {{ task.xp_reward }} XP</div>
+            </div>
+            <div class="quest-actions">
+                <button class="icon-button" data-action="toggle-task" data-id="{{ task.id }}">{{ task.completed|yesno:"Undo,Clear" }}</button>
+                <button class="icon-button ghost" data-action="delete-task" data-id="{{ task.id }}">Delete</button>
+            </div>
+        </article>
+    {% empty %}
+        <div class="empty-card">No quests active. Forge the first task on the left panel.</div>
+    {% endfor %}
+</div>

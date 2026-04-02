@@ -1,21 +1,17 @@
-# Node modules (if using JS)
 node_modules/
-
-# Python (if Django/Flask)
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
-
-# XAMPP / local config files
-config.php
-
-# Logs
+env/
+venv/
+.venv/
+media/
+staticfiles/
+db.sqlite3
 *.log
-
-# OS files
 .DS_Store
 Thumbs.db
-
-# IDE files
 .vscode/
 .idea/

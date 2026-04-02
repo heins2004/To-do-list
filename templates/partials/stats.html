@@ -1,0 +1,33 @@
+<div class="stat-stack">
+    <div class="stat-block">
+        <span>Level</span>
+        <strong>{{ progress.level }}</strong>
+    </div>
+    <div class="stat-block">
+        <span>Completion</span>
+        <strong>{{ meta.completion_rate }}%</strong>
+    </div>
+    <div class="stat-block">
+        <span>Top Streak</span>
+        <strong>{{ meta.top_streak }} days</strong>
+    </div>
+    <div class="xp-track">
+        <div class="xp-copy">
+            <span>XP Progress</span>
+            <strong>{{ progress.xp }} / {{ progress.next_level_xp }}</strong>
+        </div>
+        <div class="progress-bar">
+            <span style="width: {{ progress.percent }}%"></span>
+        </div>
+    </div>
+    <div class="mini-stats">
+        <div>
+            <span>Tasks</span>
+            <strong>{{ stats.completed_tasks }}/{{ stats.total_tasks }}</strong>
+        </div>
+        <div>
+            <span>Habits Today</span>
+            <strong>{{ stats.completed_habits_today }}/{{ stats.total_habits }}</strong>
+        </div>
+    </div>
+</div>

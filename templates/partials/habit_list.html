@@ -1,0 +1,20 @@
+<div class="card-list">
+    {% for habit in habits %}
+        <article class="quest-card state-{{ habit.selected_state }}">
+            <div class="quest-copy">
+                <div class="quest-header">
+                    <h3>{{ habit.title }}</h3>
+                    <span class="streak-flare">🔥 {{ habit.streak_count }}</span>
+                </div>
+                <p>{{ habit.description|default:"Daily ritual configured." }}</p>
+                <div class="quest-meta">Start {{ habit.start_date }} • {{ habit.xp_reward }} XP each • {% if habit.completed_selected_date %}Cleared on selected date{% elif habit.selected_state == "future" %}Starts later{% else %}Pending on selected date{% endif %}</div>
+            </div>
+            <div class="quest-actions">
+                <button class="icon-button" data-action="toggle-habit" data-id="{{ habit.id }}">Mark</button>
+                <button class="icon-button ghost" data-action="delete-habit" data-id="{{ habit.id }}">Delete</button>
+            </div>
+        </article>
+    {% empty %}
+        <div class="empty-card">No habits bound. Add one to start building streaks.</div>
+    {% endfor %}
+</div>

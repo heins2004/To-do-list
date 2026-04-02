@@ -1,0 +1,27 @@
+<div class="calendar-shell" data-selected-date="{{ calendar.selected_date }}">
+    <div class="calendar-head">
+        <button type="button" class="icon-button" data-action="select-date" data-date="{{ calendar.previous_month }}">Prev</button>
+        <h3>{{ calendar.month_label }}</h3>
+        <button type="button" class="icon-button" data-action="select-date" data-date="{{ calendar.next_month }}">Next</button>
+    </div>
+    <div class="calendar-grid weekdays">
+        {% for name in calendar.weekdays %}
+            <span>{{ name }}</span>
+        {% endfor %}
+    </div>
+    <div class="calendar-grid">
+        {% for week in calendar.weeks %}
+            {% for day in week %}
+                <button
+                    type="button"
+                    class="calendar-day tone-{{ day.tone }}{% if not day.in_month %} muted{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.is_selected %} is-selected{% endif %}"
+                    data-action="select-date"
+                    data-date="{{ day.date }}"
+                >
+                    <span>{{ day.day }}</span>
+                    <small>{{ day.task_count }}T / {{ day.habit_count }}H</small>
+                </button>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>
