@@ -1,0 +1,66 @@
+<div class="sheet-content">
+    <article class="callout-card">
+        <strong>{{ alerts.headline }}</strong>
+        <p>{{ alerts.summary }}</p>
+    </article>
+
+    <section class="sheet-list-block">
+        <div class="title-row compact">
+            <h3>Habits still pending</h3>
+            <span>{{ alerts.due_habits|length }}</span>
+        </div>
+        {% for habit in alerts.due_habits %}
+            <article class="sheet-item">
+                <strong>{{ habit.title }}</strong>
+                <span>{{ habit.streak_count }} day streak | {{ habit.xp_reward }} XP</span>
+            </article>
+        {% empty %}
+            <div class="empty-card compact">No habits pending right now.</div>
+        {% endfor %}
+    </section>
+
+    <section class="sheet-list-block">
+        <div class="title-row compact">
+            <h3>Tasks due today</h3>
+            <span>{{ alerts.today_tasks|length }}</span>
+        </div>
+        {% for task in alerts.today_tasks %}
+            <article class="sheet-item">
+                <strong>{{ task.title }}</strong>
+                <span>Due today | {{ task.type_label }} | {{ task.xp_reward }} XP</span>
+            </article>
+        {% empty %}
+            <div class="empty-card compact">No tasks due today.</div>
+        {% endfor %}
+    </section>
+
+    <section class="sheet-list-block">
+        <div class="title-row compact">
+            <h3>Upcoming reminders</h3>
+            <span>{{ alerts.upcoming_tasks|length }}</span>
+        </div>
+        {% for task in alerts.upcoming_tasks %}
+            <article class="sheet-item">
+                <strong>{{ task.title }}</strong>
+                <span>Due {{ task.due_label }} | reminder window active</span>
+            </article>
+        {% empty %}
+            <div class="empty-card compact">No upcoming reminder items.</div>
+        {% endfor %}
+    </section>
+
+    <section class="sheet-list-block">
+        <div class="title-row compact">
+            <h3>Overdue tasks</h3>
+            <span>{{ alerts.overdue_tasks|length }}</span>
+        </div>
+        {% for task in alerts.overdue_tasks %}
+            <article class="sheet-item overdue">
+                <strong>{{ task.title }}</strong>
+                <span>Was due {{ task.due_label }}</span>
+            </article>
+        {% empty %}
+            <div class="empty-card compact">No overdue tasks.</div>
+        {% endfor %}
+    </section>
+</div>

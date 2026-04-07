@@ -19,7 +19,9 @@
                     data-date="{{ day.date }}"
                 >
                     <span>{{ day.day }}</span>
-                    <small>{{ day.task_count }}T / {{ day.habit_count }}H</small>
+                    {% if day.has_note %}
+                        <span class="calendar-note-dot" aria-hidden="true"></span>
+                    {% endif %}
                 </button>
             {% endfor %}
         {% endfor %}

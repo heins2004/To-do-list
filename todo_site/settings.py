@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "tasks",
     "habits",
     "dashboard",
+    "journal",
 ]
 
 MIDDLEWARE = [
@@ -173,6 +174,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 SECURE_BROWSER_XSS_FILTER = not DEBUG
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 SECURE_SSL_REDIRECT = not DEBUG and IS_RENDER
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG

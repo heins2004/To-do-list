@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from dashboard.services import build_dashboard_payload, ensure_achievements, update_achievements
 
 from .forms import HabitForm
-from .models import Habit, HabitLog
+from .models import Habit, HabitLog, HabitSkip
 
 
 def calculate_streak(habit: Habit) -> int:
@@ -23,6 +23,13 @@ def calculate_streak(habit: Habit) -> int:
         streak += 1
         current_day = current_day - timedelta(days=1)
     return streak
+
+
+def sync_habit_progress(habit: Habit) -> None:
+    latest_log = habit.logs.order_by("-completed_on").first()
+    habit.last_completed = latest_log.completed_on if latest_log else None
+    habit.streak_count = calculate_streak(habit)
+    habit.save(update_fields=["last_completed", "streak_count"])
 
 
 @require_POST
@@ -50,11 +57,9 @@ def toggle_habit(request, pk):
     completed = False
     if log:
         log.delete()
-        latest_log = habit.logs.order_by("-completed_on").first()
-        habit.last_completed = latest_log.completed_on if latest_log else None
-        habit.streak_count = calculate_streak(habit)
-        habit.save(update_fields=["last_completed", "streak_count"])
+        sync_habit_progress(habit)
     else:
+        HabitSkip.objects.filter(habit=habit, date=target_date).delete()
         HabitLog.objects.create(habit=habit, completed_on=target_date)
         habit.last_completed = max(filter(None, [habit.last_completed, target_date])) if habit.last_completed else target_date
         habit.streak_count = calculate_streak(habit)
@@ -72,3 +77,35 @@ def delete_habit(request, pk):
     habit.delete()
     payload = build_dashboard_payload()
     return JsonResponse({"ok": True, "message": "Habit archive removed.", "payload": payload})
+
+
+@require_POST
+def skip_habit(request, pk):
+    habit = get_object_or_404(Habit, pk=pk)
+    body = json.loads(request.body or "{}")
+    target_date = date.fromisoformat(body.get("date")) if body.get("date") else timezone.localdate()
+    reason = (body.get("reason") or "").strip()[:200]
+
+    if target_date < habit.start_date:
+        return JsonResponse({"ok": False, "message": "Habit has not started yet."}, status=400)
+
+    HabitLog.objects.filter(habit=habit, completed_on=target_date).delete()
+    HabitSkip.objects.update_or_create(
+        habit=habit,
+        date=target_date,
+        defaults={"reason": reason},
+    )
+    sync_habit_progress(habit)
+    update_achievements()
+    payload = build_dashboard_payload(selected_date=target_date)
+    return JsonResponse({"ok": True, "message": "Habit skipped for today.", "payload": payload})
+
+
+@require_POST
+def undo_skip_habit(request, pk):
+    habit = get_object_or_404(Habit, pk=pk)
+    body = json.loads(request.body or "{}")
+    target_date = date.fromisoformat(body.get("date")) if body.get("date") else timezone.localdate()
+    HabitSkip.objects.filter(habit=habit, date=target_date).delete()
+    payload = build_dashboard_payload(selected_date=target_date)
+    return JsonResponse({"ok": True, "message": "Habit skip removed.", "payload": payload})

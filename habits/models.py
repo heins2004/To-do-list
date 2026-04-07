@@ -30,6 +30,9 @@ class Habit(models.Model):
     def is_completed_on(self, date_value) -> bool:
         return self.logs.filter(completed_on=date_value).exists()
 
+    def is_skipped_on(self, date_value) -> bool:
+        return self.skips.filter(date=date_value).exists()
+
 
 class HabitLog(models.Model):
     habit = models.ForeignKey(Habit, related_name="logs", on_delete=models.CASCADE)
@@ -42,3 +45,17 @@ class HabitLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.habit.title} @ {self.completed_on}"
+
+
+class HabitSkip(models.Model):
+    habit = models.ForeignKey(Habit, related_name="skips", on_delete=models.CASCADE)
+    date = models.DateField()
+    reason = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("habit", "date")
+        ordering = ["-date"]
+
+    def __str__(self) -> str:
+        return f"{self.habit.title} skipped @ {self.date}"

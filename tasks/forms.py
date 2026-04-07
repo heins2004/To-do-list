@@ -10,12 +10,13 @@ class TaskForm(forms.ModelForm):
 
     class Meta:
         model = Task
-        fields = ["title", "description", "due_date", "type", "xp_reward"]
+        fields = ["title", "description", "due_date", "reminder_days_before", "type", "xp_reward"]
         widgets = {
             "title": forms.TextInput(attrs={"placeholder": "Defeat the backlog"}),
             "description": forms.Textarea(
                 attrs={"rows": 3, "placeholder": "Add context, notes, or a boss strategy"}
             ),
+            "reminder_days_before": forms.NumberInput(attrs={"min": 0, "max": 30, "step": 1}),
             "type": forms.Select(),
             "xp_reward": forms.NumberInput(attrs={"min": 10, "max": 500, "step": 10}),
         }

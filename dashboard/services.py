@@ -7,7 +7,8 @@ from django.db.models import Prefetch
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from habits.models import Habit, HabitLog
+from habits.models import Habit, HabitLog, HabitSkip
+from journal.models import DailyNote
 from tasks.models import Task
 
 from .models import Achievement, Progress
@@ -73,19 +74,39 @@ def build_dashboard_payload(selected_date: date | None = None) -> dict:
     today = timezone.localdate()
     selected_date = selected_date or today
 
-    habits = list(Habit.objects.prefetch_related(Prefetch("logs", queryset=HabitLog.objects.order_by("-completed_on"))))
+    habits = list(
+        Habit.objects.prefetch_related(
+            Prefetch("logs", queryset=HabitLog.objects.order_by("-completed_on")),
+            Prefetch("skips", queryset=HabitSkip.objects.order_by("-date")),
+        )
+    )
     for habit in habits:
         habit.refresh_streak(today=today)
 
     tasks = list(Task.objects.all())
+    notes = list(DailyNote.objects.all())
+    note_map = {note.date: note for note in notes}
     progress = get_progress()
-    calendar_data = build_calendar(tasks, habits, selected_date)
+    calendar_data = build_calendar(tasks, habits, selected_date, note_map)
     selected_items = build_selected_items(selected_date, tasks, habits, today)
+    weekly_habit_graph = build_weekly_habit_graph(habits, today)
+    today_note = serialize_note(note_map.get(today))
+    selected_note = serialize_note(note_map.get(selected_date))
 
     completed_tasks = [task for task in tasks if task.completed]
     pending_tasks = [task for task in tasks if not task.completed]
     overdue_tasks = [task for task in pending_tasks if task.due_date < today]
+    today_tasks = [task for task in pending_tasks if task.due_date == today]
+    upcoming_reminders = [
+        task for task in pending_tasks if today < task.due_date <= today + timedelta(days=task.reminder_days_before)
+    ]
+    due_habits = [
+        habit
+        for habit in habits
+        if habit.start_date <= today and not habit.is_completed_on(today) and not habit.is_skipped_on(today)
+    ]
     completed_habits_today = sum(1 for habit in habits if habit.is_completed_on(today))
+    skipped_habits_today = sum(1 for habit in habits if habit.is_skipped_on(today))
     total_habits = len(habits)
     total_possible = len(tasks) + total_habits
     total_completed = len(completed_tasks) + completed_habits_today
@@ -99,6 +120,24 @@ def build_dashboard_payload(selected_date: date | None = None) -> dict:
     achievements = [serialize_achievement(item) for item in Achievement.objects.all()]
     serialized_tasks = [serialize_task(task, today) for task in tasks]
     serialized_habits = [serialize_habit(habit, today, selected_date) for habit in habits]
+    home_habits = [habit for habit in serialized_habits if habit["start_date"] <= today.isoformat()]
+    due_habit_cards = [habit for habit in home_habits if not habit["completed_today"] and not habit["skipped_today"]]
+    home_habits.sort(
+        key=lambda item: (
+            item["completed_today"],
+            item["skipped_today"],
+            -item["streak_count"],
+            item["title"].lower(),
+        )
+    )
+
+    alerts = build_alerts(
+        today=today,
+        due_habits=due_habit_cards,
+        today_tasks=serialized_task_subset(today_tasks, today),
+        upcoming=serialized_task_subset(upcoming_reminders, today),
+        overdue=serialized_task_subset(overdue_tasks, today),
+    )
 
     payload = {
         "meta": {
@@ -110,6 +149,11 @@ def build_dashboard_payload(selected_date: date | None = None) -> dict:
             "top_streak": top_streak,
             "overdue_count": len(overdue_tasks),
             "habit_completion_rate": int((completed_habits_today / total_habits) * 100) if total_habits else 0,
+            "tasks_due_today": len(today_tasks),
+            "reminder_count": len(upcoming_reminders),
+            "pending_habits_today": len(due_habits),
+            "skipped_habits_today": skipped_habits_today,
+            "task_nav_badge": len(overdue_tasks) or len(today_tasks),
         },
         "stats": {
             "total_tasks": len(tasks),
@@ -127,24 +171,88 @@ def build_dashboard_payload(selected_date: date | None = None) -> dict:
         },
         "tasks": serialized_tasks,
         "habits": serialized_habits,
+        "home_habits": home_habits,
         "selected_items": selected_items,
         "calendar": calendar_data,
+        "alerts": alerts,
+        "weekly_habit_graph": weekly_habit_graph,
+        "today_note": today_note,
+        "selected_note": selected_note,
+        "calendar_years": list(range(today.year - 3, today.year + 5)),
         "achievements": achievements,
         "partials": {},
     }
 
     payload["partials"] = {
-        "task_list": render_to_string("partials/task_list.html", {"tasks": serialized_tasks}),
-        "habit_list": render_to_string("partials/habit_list.html", {"habits": serialized_habits, "meta": payload["meta"]}),
-        "calendar": render_to_string("partials/calendar.html", {"calendar": calendar_data}),
-        "selected_day": render_to_string("partials/selected_day.html", {"selected_items": selected_items, "selected_date": selected_date.isoformat()}),
-        "achievements": render_to_string("partials/achievements.html", {"achievements": achievements}),
-        "stats": render_to_string("partials/stats.html", {"meta": payload["meta"], "stats": payload["stats"], "progress": payload["progress"]}),
+        "home_section": render_to_string(
+            "partials/home_section.html",
+            {
+                "habits": home_habits,
+                "meta": payload["meta"],
+                "stats": payload["stats"],
+                "progress": payload["progress"],
+                "alerts": alerts,
+                "weekly_habit_graph": weekly_habit_graph,
+                "today_note": today_note,
+                "achievements": achievements,
+            },
+        ),
+        "tasks_section": render_to_string(
+            "partials/tasks_section.html",
+            {
+                "tasks": serialized_tasks,
+                "calendar": calendar_data,
+                "selected_items": selected_items,
+                "selected_date": selected_date.isoformat(),
+                "meta": payload["meta"],
+                "calendar_years": payload["calendar_years"],
+                "selected_note": selected_note,
+            },
+        ),
+        "alert_sheet": render_to_string("partials/alert_sheet.html", {"alerts": alerts, "meta": payload["meta"]}),
+        "day_sheet": render_to_string(
+            "partials/day_sheet.html",
+            {
+                "selected_items": selected_items,
+                "selected_date": selected_date.isoformat(),
+                "selected_note": selected_note,
+                "meta": payload["meta"],
+            },
+        ),
     }
     return payload
 
 
+def serialized_task_subset(tasks: list[Task], today: date) -> list[dict]:
+    return [serialize_task(task, today) for task in tasks]
+
+
+def build_alerts(today: date, due_habits: list[dict], today_tasks: list[dict], upcoming: list[dict], overdue: list[dict]) -> dict:
+    summary = []
+    if due_habits:
+        summary.append(f"{len(due_habits)} habits left today")
+    if today_tasks:
+        summary.append(f"{len(today_tasks)} tasks due today")
+    if overdue:
+        summary.append(f"{len(overdue)} overdue")
+    if upcoming:
+        summary.append(f"{len(upcoming)} upcoming reminders")
+
+    return {
+        "headline": "Nothing urgent right now." if not summary else "Today needs attention.",
+        "summary": " | ".join(summary) if summary else "You are clear for now.",
+        "due_habits": due_habits,
+        "today_tasks": today_tasks,
+        "upcoming_tasks": upcoming,
+        "overdue_tasks": overdue,
+        "has_items": bool(summary),
+        "today": today.isoformat(),
+    }
+
+
 def serialize_task(task: Task, today: date) -> dict:
+    days_until_due = (task.due_date - today).days
+    reminder_start = task.due_date - timedelta(days=task.reminder_days_before)
     return {
         "id": task.id,
         "title": task.title,
@@ -155,11 +263,18 @@ def serialize_task(task: Task, today: date) -> dict:
         "type": task.type,
         "type_label": task.get_type_display(),
         "xp_reward": task.xp_reward,
+        "reminder_days_before": task.reminder_days_before,
+        "days_until_due": days_until_due,
+        "reminder_active": today >= reminder_start and not task.completed,
         "state": "completed" if task.completed else ("missed" if task.due_date < today else "pending"),
     }
 
 
 def serialize_habit(habit: Habit, today: date, selected_date: date) -> dict:
+    completed_today = habit.is_completed_on(today)
+    skipped_today = habit.is_skipped_on(today)
+    selected_skip = habit.skips.filter(date=selected_date).first()
+    today_skip = habit.skips.filter(date=today).first()
     return {
         "id": habit.id,
         "title": habit.title,
@@ -167,19 +282,53 @@ def serialize_habit(habit: Habit, today: date, selected_date: date) -> dict:
         "start_date": habit.start_date.isoformat(),
         "streak_count": habit.streak_count,
         "last_completed": habit.last_completed.isoformat() if habit.last_completed else None,
-        "completed_today": habit.is_completed_on(today),
+        "completed_today": completed_today,
+        "skipped_today": skipped_today,
+        "skip_reason_today": today_skip.reason if today_skip else "",
         "completed_selected_date": habit.is_completed_on(selected_date),
+        "skipped_selected_date": bool(selected_skip),
+        "skip_reason_selected_date": selected_skip.reason if selected_skip else "",
         "xp_reward": habit.xp_reward,
+        "progress_percent": 100 if completed_today or skipped_today else 0,
         "selected_state": (
             "future"
             if selected_date < habit.start_date
             else "completed"
             if habit.is_completed_on(selected_date)
+            else "skipped"
+            if selected_skip
             else "missed"
             if selected_date < today
             else "pending"
         ),
     }
+
+
+def build_weekly_habit_graph(habits: list[Habit], today: date) -> list[dict]:
+    week_days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    total_habits = len([habit for habit in habits if habit.start_date <= today])
+    graph = []
+
+    for day in week_days:
+        active_habits = [habit for habit in habits if habit.start_date <= day]
+        completed_count = sum(1 for habit in active_habits if habit.is_completed_on(day))
+        skipped_count = sum(1 for habit in active_habits if habit.is_skipped_on(day))
+        denominator = len(active_habits) or total_habits or 1
+        percent = int(((completed_count + skipped_count) / denominator) * 100) if active_habits else 0
+        tone = "completed" if completed_count else "skipped" if skipped_count else "missed"
+        graph.append(
+            {
+                "date": day.isoformat(),
+                "label": day.strftime("%a"),
+                "completed": completed_count,
+                "skipped": skipped_count,
+                "total": len(active_habits),
+                "percent": percent,
+                "tone": tone,
+            }
+        )
+
+    return graph
 
 
 def serialize_achievement(item: Achievement) -> dict:
@@ -192,6 +341,14 @@ def serialize_achievement(item: Achievement) -> dict:
     }
 
 
+def serialize_note(note: DailyNote | None) -> dict:
+    return {
+        "date": note.date.isoformat() if note else None,
+        "content": note.content if note else "",
+        "has_note": bool(note and note.content.strip()),
+    }
+
+
 def build_selected_items(selected_date: date, tasks: list[Task], habits: list[Habit], today: date) -> list[dict]:
     items = []
     for task in tasks:
@@ -201,23 +358,29 @@ def build_selected_items(selected_date: date, tasks: list[Task], habits: list[Ha
                     "kind": "task",
                     "title": task.title,
                     "state": task.state,
-                    "meta": f"{task.get_type_display()} | {task.xp_reward} XP",
+                    "meta": f"{task.get_type_display()} | {task.xp_reward} XP | Remind {task.reminder_days_before} day(s) early",
                 }
             )
     for habit in habits:
         if selected_date >= habit.start_date:
+            skip = habit.skips.filter(date=selected_date).first()
             items.append(
                 {
                     "kind": "habit",
                     "title": habit.title,
-                    "state": "completed" if habit.is_completed_on(selected_date) else ("missed" if selected_date < today else "pending"),
-                    "meta": f"Streak {habit.streak_count} | {habit.xp_reward} XP",
+                    "state": "completed"
+                    if habit.is_completed_on(selected_date)
+                    else "skipped"
+                    if skip
+                    else ("missed" if selected_date < today else "pending"),
+                    "meta": f"Streak {habit.streak_count} | {habit.xp_reward} XP"
+                    + (f" | Skipped: {skip.reason}" if skip and skip.reason else " | Skipped" if skip else ""),
                 }
             )
     return items
 
 
-def build_calendar(tasks: list[Task], habits: list[Habit], selected_date: date) -> dict:
+def build_calendar(tasks: list[Task], habits: list[Habit], selected_date: date, note_map: dict[date, DailyNote]) -> dict:
     cal = calendar.Calendar(firstweekday=0)
     month_days = cal.monthdatescalendar(selected_date.year, selected_date.month)
     today = timezone.localdate()
@@ -241,12 +404,13 @@ def build_calendar(tasks: list[Task], habits: list[Habit], selected_date: date) 
             pending_tasks = task_map[day] - completed_task_map[day]
             habit_count = sum(1 for habit in habits if habit.start_date <= day)
             habit_done = habit_logs[day]
+            item_count = task_map[day] + habit_count
 
             if completed_task_map[day] or (habit_count and habit_done >= habit_count):
                 tone = "green"
             elif day < today and (pending_tasks or (habit_count and habit_done < habit_count)):
                 tone = "red"
-            elif task_map[day] or habit_count or day >= today:
+            elif item_count or day >= today:
                 tone = "blue"
             else:
                 tone = "neutral"
@@ -261,6 +425,8 @@ def build_calendar(tasks: list[Task], habits: list[Habit], selected_date: date) 
                     "tone": tone,
                     "task_count": task_map[day],
                     "habit_count": habit_count,
+                    "item_count": item_count,
+                    "has_note": bool(note_map.get(day) and note_map[day].content.strip()),
                 }
             )
         weeks.append(week_payload)
@@ -271,6 +437,8 @@ def build_calendar(tasks: list[Task], habits: list[Habit], selected_date: date) 
     return {
         "month_label": selected_date.strftime("%B %Y"),
         "selected_date": selected_date.isoformat(),
+        "selected_month": selected_date.strftime("%m"),
+        "selected_year": str(selected_date.year),
         "previous_month": previous_month.isoformat(),
         "next_month": next_month.isoformat(),
         "weekdays": list(calendar.day_abbr),

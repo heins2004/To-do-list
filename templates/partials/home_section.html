@@ -1,0 +1,163 @@
+<section class="home-hero">
+    <div>
+        <p class="eyebrow">Habit tracker</p>
+        <h2>Complete what is left today.</h2>
+        <p class="subcopy">{{ alerts.summary }}</p>
+    </div>
+    <div class="hero-actions">
+        <button type="button" class="ghost-button" data-action="open-alert-sheet">
+        Pending now
+        {% if alerts.has_items %}
+            <span class="inline-badge">{{ meta.pending_habits_today|add:meta.tasks_due_today|add:meta.overdue_count }}</span>
+        {% endif %}
+        </button>
+        <button type="button" class="ghost-button" data-action="open-habit-form">Add habit</button>
+    </div>
+</section>
+
+<section class="summary-grid">
+    <article class="summary-card accent">
+        <span>Daily progress</span>
+        <strong>{{ meta.habit_completion_rate }}%</strong>
+        <small>{{ stats.completed_habits_today }}/{{ stats.total_habits }} habits done</small>
+    </article>
+    <article class="summary-card">
+        <span>Current streak</span>
+        <strong>{{ meta.top_streak }}</strong>
+        <small>best active run</small>
+    </article>
+    <article class="summary-card">
+        <span>Total XP</span>
+        <strong>{{ progress.xp }}</strong>
+        <small>Level {{ progress.level }}</small>
+    </article>
+</section>
+
+<section class="progress-panel">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Level progress</p>
+            <h3>Keep the streak moving</h3>
+        </div>
+        <strong>{{ progress.percent }}%</strong>
+    </div>
+    <div class="progress-bar"><span style="width: {{ progress.percent }}%"></span></div>
+</section>
+
+<section class="graph-panel">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Last 7 days</p>
+            <h3>Daily habit completion graph</h3>
+        </div>
+    </div>
+    <div class="weekly-graph">
+        {% for day in weekly_habit_graph %}
+            <article class="graph-day">
+                <div class="graph-bar-wrap">
+                    <span class="graph-bar graph-bar-{{ day.tone }}" style="height: {{ day.percent }}%"></span>
+                </div>
+                <strong>{{ day.label }}</strong>
+                <small>
+                    {% if day.tone == "skipped" %}
+                        {{ day.skipped }} skipped
+                    {% else %}
+                        {{ day.completed }}/{{ day.total }}
+                    {% endif %}
+                </small>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="habit-stack">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Today habits</p>
+            <h3>Check them off here</h3>
+        </div>
+    </div>
+
+    <div class="habit-list">
+        {% for habit in habits %}
+            <article class="habit-card {% if habit.completed_today %}is-done{% endif %}{% if habit.skipped_today %} is-skipped{% endif %}">
+                <div class="habit-copy">
+                    <div class="title-row compact">
+                        <h3>{{ habit.title }}</h3>
+                        <span class="status-pill {% if habit.completed_today %}completed{% elif habit.skipped_today %}skipped{% else %}pending{% endif %}">
+                            {% if habit.completed_today %}Done{% elif habit.skipped_today %}Skipped{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                    <p>{{ habit.description|default:"No note added yet." }}</p>
+                    <div class="meta-row">
+                        <span>{{ habit.streak_count }} day streak</span>
+                        <span>{{ habit.xp_reward }} XP</span>
+                        <span>Progress {{ habit.progress_percent }}%</span>
+                    </div>
+                    {% if habit.skipped_today and habit.skip_reason_today %}
+                        <p class="skip-reason-copy">Reason: {{ habit.skip_reason_today }}</p>
+                    {% endif %}
+                </div>
+                <div class="habit-actions">
+                    {% if not habit.skipped_today %}
+                        <button type="button" class="toggle-button" data-action="toggle-habit" data-id="{{ habit.id }}">
+                            {% if habit.completed_today %}Undo{% else %}Mark done{% endif %}
+                        </button>
+                        <button type="button" class="icon-button" data-action="open-skip-form" data-id="{{ habit.id }}">Skip</button>
+                    {% else %}
+                        <button type="button" class="toggle-button" data-action="undo-skip-habit" data-id="{{ habit.id }}">Undo Skip</button>
+                    {% endif %}
+                    <button type="button" class="icon-button danger" data-action="delete-habit" data-id="{{ habit.id }}">Delete</button>
+                </div>
+                {% if not habit.skipped_today %}
+                    <form class="skip-inline-form is-hidden" data-skip-form="{{ habit.id }}">
+                        <label for="skip-reason-{{ habit.id }}">Reason (optional)</label>
+                        <input id="skip-reason-{{ habit.id }}" type="text" maxlength="200" placeholder="Why are you skipping today?">
+                        <div class="skip-inline-actions">
+                            <button type="button" class="toggle-button" data-action="confirm-skip-habit" data-id="{{ habit.id }}">Confirm Skip</button>
+                            <button type="button" class="icon-button" data-action="cancel-skip-form" data-id="{{ habit.id }}">Cancel</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </article>
+        {% empty %}
+            <div class="empty-card">No habits yet. Add one to make this home screen useful.</div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="journal-panel">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Daily journal</p>
+            <h3>Today's Notes</h3>
+        </div>
+        <span class="journal-status" id="journal-status">Idle</span>
+    </div>
+    <label class="journal-label" for="daily-note-textarea">Today's Notes</label>
+    <textarea
+        id="daily-note-textarea"
+        class="journal-textarea"
+        data-note-date="{{ meta.today }}"
+        rows="6"
+        placeholder="Write what happened today, what to improve, or what to remember tomorrow..."
+    >{{ today_note.content }}</textarea>
+</section>
+
+<section class="badge-panel">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Wins</p>
+            <h3>Achievement progress</h3>
+        </div>
+    </div>
+    <div class="badge-grid">
+        {% for achievement in achievements %}
+            <article class="badge-card {% if achievement.unlocked %}unlocked{% endif %}">
+                <span class="badge-icon">{{ achievement.icon }}</span>
+                <strong>{{ achievement.name }}</strong>
+                <small>{{ achievement.description }}</small>
+            </article>
+        {% endfor %}
+    </div>
+</section>

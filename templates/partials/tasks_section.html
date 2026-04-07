@@ -1,0 +1,94 @@
+<section class="tasks-hero">
+    <div>
+        <p class="eyebrow">To-do list</p>
+        <h2>Plan by date and act before tasks slip.</h2>
+        <p class="subcopy">{{ meta.overdue_count }} overdue, {{ meta.tasks_due_today }} due today, {{ meta.reminder_count }} in reminder range.</p>
+    </div>
+    <button type="button" class="ghost-button" data-action="open-task-form">Add task</button>
+</section>
+
+<section class="task-summary-grid">
+    <article class="summary-card danger">
+        <span>Overdue</span>
+        <strong>{{ meta.overdue_count }}</strong>
+        <small>needs attention now</small>
+    </article>
+    <article class="summary-card">
+        <span>Due today</span>
+        <strong>{{ meta.tasks_due_today }}</strong>
+        <small>scheduled for today</small>
+    </article>
+</section>
+
+<section class="calendar-panel">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Calendar</p>
+            <h3>Tap a day to view or add tasks</h3>
+        </div>
+        <div class="calendar-picker-panel">
+            <label class="picker-field">
+                <span>Month</span>
+                <select class="month-picker-select" data-action="pick-month">
+                    <option value="01"{% if calendar.selected_month == '01' %} selected{% endif %}>January</option>
+                    <option value="02"{% if calendar.selected_month == '02' %} selected{% endif %}>February</option>
+                    <option value="03"{% if calendar.selected_month == '03' %} selected{% endif %}>March</option>
+                    <option value="04"{% if calendar.selected_month == '04' %} selected{% endif %}>April</option>
+                    <option value="05"{% if calendar.selected_month == '05' %} selected{% endif %}>May</option>
+                    <option value="06"{% if calendar.selected_month == '06' %} selected{% endif %}>June</option>
+                    <option value="07"{% if calendar.selected_month == '07' %} selected{% endif %}>July</option>
+                    <option value="08"{% if calendar.selected_month == '08' %} selected{% endif %}>August</option>
+                    <option value="09"{% if calendar.selected_month == '09' %} selected{% endif %}>September</option>
+                    <option value="10"{% if calendar.selected_month == '10' %} selected{% endif %}>October</option>
+                    <option value="11"{% if calendar.selected_month == '11' %} selected{% endif %}>November</option>
+                    <option value="12"{% if calendar.selected_month == '12' %} selected{% endif %}>December</option>
+                </select>
+            </label>
+            <label class="picker-field">
+                <span>Year</span>
+                <select class="year-picker-select" data-action="pick-year">
+                    {% for year in calendar_years %}
+                        <option value="{{ year }}"{% if calendar.selected_year == year|stringformat:"s" %} selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+    </div>
+    {% include "partials/calendar.html" with calendar=calendar %}
+</section>
+
+<section class="task-board-panel">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Task board</p>
+            <h3>All tasks</h3>
+        </div>
+    </div>
+    <div class="task-list">
+        {% for task in tasks %}
+            <article class="task-card state-{{ task.state }}">
+                <div class="task-copy">
+                    <div class="title-row compact">
+                        <h3>{{ task.title }}</h3>
+                        <span class="status-pill {{ task.state }}">{{ task.state|title }}</span>
+                    </div>
+                    <p>{{ task.description|default:"No extra details added." }}</p>
+                    <div class="meta-row">
+                        <span>{{ task.type_label }}</span>
+                        <span>Due {{ task.due_label }}</span>
+                        <span>Remind {{ task.reminder_days_before }} day(s) before</span>
+                        <span>{{ task.xp_reward }} XP</span>
+                    </div>
+                </div>
+                <div class="task-actions">
+                    <button type="button" class="toggle-button" data-action="toggle-task" data-id="{{ task.id }}">
+                        {{ task.completed|yesno:"Undo,Done" }}
+                    </button>
+                    <button type="button" class="icon-button danger" data-action="delete-task" data-id="{{ task.id }}">Delete</button>
+                </div>
+            </article>
+        {% empty %}
+            <div class="empty-card">No tasks yet. Add one from the button above or from a calendar day.</div>
+        {% endfor %}
+    </div>
+</section>

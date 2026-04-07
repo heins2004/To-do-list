@@ -5,6 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}DoMatrix{% endblock %}</title>
+    <script>
+        (function () {
+            try {
+                var storedTheme = localStorage.getItem("domatrix-theme");
+                if (storedTheme === "light") {
+                    document.documentElement.classList.add("preload-light-mode");
+                }
+            } catch (error) {}
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,6 +22,14 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <script>
+        (function () {
+            if (document.documentElement.classList.contains("preload-light-mode")) {
+                document.body.classList.add("light-mode");
+                document.documentElement.classList.remove("preload-light-mode");
+            }
+        })();
+    </script>
     {% block content %}{% endblock %}
     <script>
         window.__DASHBOARD_PAYLOAD__ = JSON.parse('{{ payload_json|default:"null"|escapejs }}');

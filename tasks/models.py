@@ -15,6 +15,7 @@ class Task(models.Model):
     title = models.CharField(max_length=160)
     description = models.TextField(blank=True)
     due_date = models.DateField(default=timezone.localdate)
+    reminder_days_before = models.PositiveIntegerField(default=1)
     completed = models.BooleanField(default=False)
     type = models.CharField(max_length=12, choices=TYPE_CHOICES, default=TYPE_MAIN)
     xp_reward = models.PositiveIntegerField(default=40)

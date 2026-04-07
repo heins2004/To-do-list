@@ -3,150 +3,176 @@
 {% block title %}DoMatrix{% endblock %}
 
 {% block content %}
-<main class="app-shell">
-    <div class="background-grid"></div>
-    <section class="dashboard-frame">
-        <header class="top-banner">
+<main class="mobile-shell">
+    <div class="ambient-orb orb-one"></div>
+    <div class="ambient-orb orb-two"></div>
+
+    <section class="app-frame">
+        <header class="app-topbar">
             <div>
-                <p class="eyebrow">Consistency Core System</p>
+                <p class="eyebrow">Daily flow</p>
                 <h1>DoMatrix</h1>
-                <p class="subcopy">A system  to organize productivity, track progress, and manage daily goals efficiently.</p>
+                <p class="subcopy">Habits first, tasks one swipe away.</p>
             </div>
-            <div class="alert-chip">
-                <span class="alert-dot"></span>
-                <span><strong id="alert-count">{{ payload.meta.overdue_count }}</strong> overdue alerts</span>
+            <div class="topbar-actions">
+                <button type="button" class="theme-toggle-button" data-action="toggle-theme" aria-label="Toggle color mode">
+                    <span class="theme-icon" id="theme-icon" aria-hidden="true">☀</span>
+                    <span id="theme-label">Light</span>
+                </button>
+                <button type="button" class="alert-nav-button" data-action="toggle-section">
+                    <span id="section-toggle-label">To-do list</span>
+                    <strong id="task-nav-badge">{{ payload.meta.task_nav_badge }}</strong>
+                </button>
             </div>
         </header>
 
-        <section class="dashboard-grid">
-            <aside class="stack-column">
-                <article class="panel profile-panel">
-                    <div class="panel-title-row">
-                        <span class="panel-title">Level Profile</span>
-                        <span class="panel-tag">System</span>
+        <section class="swipe-stage">
+            <div class="swipe-track" id="swipe-track">
+                <section class="screen-panel" data-screen="home">
+                    <div id="home-section-panel">
+                        {% include "partials/home_section.html" with habits=payload.home_habits meta=payload.meta stats=payload.stats progress=payload.progress alerts=payload.alerts achievements=payload.achievements %}
                     </div>
-                    <div class="avatar-core">
-                        <div class="avatar-ring"></div>
-                        <div class="avatar-sigil">S</div>
+                </section>
+
+                <section class="screen-panel" data-screen="tasks">
+                    <div id="tasks-section-panel">
+                        {% include "partials/tasks_section.html" with tasks=payload.tasks calendar=payload.calendar selected_items=payload.selected_items selected_date=payload.meta.selected_date meta=payload.meta calendar_years=payload.calendar_years %}
                     </div>
-                    <div id="stats-panel">
-                        {% include "partials/stats.html" with meta=payload.meta stats=payload.stats progress=payload.progress %}
-                    </div>
-                </article>
-
-                <article class="panel form-panel">
-                    <div class="panel-title-row">
-                        <span class="panel-title">Add Task</span>
-                        <span class="panel-tag accent">Quest</span>
-                    </div>
-                    <form id="task-form" class="command-form" action="{% url 'task_create' %}" method="post">
-                        {% csrf_token %}
-                        <label>Title</label>
-                        <input type="text" name="title" placeholder="Ship the dashboard revamp" required>
-                        <label>Description</label>
-                        <textarea name="description" rows="3" placeholder="Add notes, context, or blockers"></textarea>
-                        <div class="form-split">
-                            <div>
-                                <label>Deadline</label>
-                                <input type="date" name="due_date" value="{{ payload.meta.today }}" required>
-                            </div>
-                            <div>
-                                <label>Type</label>
-                                <select name="type">
-                                    <option value="boss">High</option>
-                                    <option value="main">Mid</option>
-                                    <option value="side">Low</option>
-                                </select>
-                            </div>
-                        </div>
-                        <label>XP Reward</label>
-                        <input type="number" name="xp_reward" min="10" step="10" value="40">
-                        <button type="submit" class="primary-button">Forge Task</button>
-                    </form>
-                </article>
-
-                <article class="panel form-panel">
-                    <div class="panel-title-row">
-                        <span class="panel-title">Add Habit</span>
-                        <span class="panel-tag success">Daily</span>
-                    </div>
-                    <form id="habit-form" class="command-form" action="{% url 'habit_create' %}" method="post">
-                        {% csrf_token %}
-                        <label>Title</label>
-                        <input type="text" name="title" placeholder="Morning focus ritual" required>
-                        <label>Description</label>
-                        <textarea name="description" rows="3" placeholder="Define the repeatable action"></textarea>
-                        <div class="form-split">
-                            <div>
-                                <label>Start Date</label>
-                                <input type="date" name="start_date" value="{{ payload.meta.today }}" required>
-                            </div>
-                            <div>
-                                <label>XP Reward</label>
-                                <input type="number" name="xp_reward" min="10" step="5" value="25">
-                            </div>
-                        </div>
-                        <button type="submit" class="primary-button alt">Bind Habit</button>
-                    </form>
-                </article>
-            </aside>
-
-            <section class="main-column">
-                <div class="two-column-strip">
-                    <article class="panel">
-                        <div class="panel-title-row">
-                            <span class="panel-title">Task Board</span>
-                            <span class="panel-tag">Objectives</span>
-                        </div>
-                        <div id="task-list-panel">
-                            {% include "partials/task_list.html" with tasks=payload.tasks %}
-                        </div>
-                    </article>
-
-                    <article class="panel">
-                        <div class="panel-title-row">
-                            <span class="panel-title">Habit Tracker</span>
-                            <span class="panel-tag success">Streaks</span>
-                        </div>
-                        <div id="habit-list-panel">
-                            {% include "partials/habit_list.html" with habits=payload.habits meta=payload.meta %}
-                        </div>
-                    </article>
-                </div>
-
-                <div class="two-column-strip lower-strip">
-                    <article class="panel wide-panel">
-                        <div class="panel-title-row">
-                            <span class="panel-title">Mission Calendar</span>
-                            <span class="panel-tag danger">Alerts</span>
-                        </div>
-                        <div id="calendar-panel">
-                            {% include "partials/calendar.html" with calendar=payload.calendar %}
-                        </div>
-                    </article>
-
-                    <article class="panel side-panel">
-                        <div class="panel-title-row">
-                            <span class="panel-title">Selected Day</span>
-                            <span class="panel-tag" id="selected-date-tag">{{ payload.meta.selected_date }}</span>
-                        </div>
-                        <div id="selected-day-panel">
-                            {% include "partials/selected_day.html" with selected_items=payload.selected_items selected_date=payload.meta.selected_date %}
-                        </div>
-                    </article>
-                </div>
-
-                <article class="panel">
-                    <div class="panel-title-row">
-                        <span class="panel-title">Achievement Showcase</span>
-                        <span class="panel-tag">Badges</span>
-                    </div>
-                    <div id="achievement-panel">
-                        {% include "partials/achievements.html" with achievements=payload.achievements %}
-                    </div>
-                </article>
-            </section>
+                </section>
+            </div>
         </section>
     </section>
 </main>
+
+<div class="sheet-backdrop is-hidden" id="alert-sheet-backdrop">
+    <section class="sheet-panel" aria-modal="true" role="dialog">
+        <div class="sheet-header">
+            <div>
+                <p class="eyebrow">Open app summary</p>
+                <h2>Pending now</h2>
+            </div>
+            <button type="button" class="close-button" data-action="close-alert-sheet">Close</button>
+        </div>
+        <div id="alert-sheet-panel">
+            {% include "partials/alert_sheet.html" with alerts=payload.alerts meta=payload.meta %}
+        </div>
+    </section>
+</div>
+
+<div class="sheet-backdrop is-hidden" id="day-sheet-backdrop">
+    <section class="sheet-panel" aria-modal="true" role="dialog">
+        <div class="sheet-header">
+            <div>
+                <p class="eyebrow">Calendar details</p>
+                <h2>Selected day</h2>
+            </div>
+            <button type="button" class="close-button" data-action="close-day-sheet">Close</button>
+        </div>
+        <div id="day-sheet-panel">
+            {% include "partials/day_sheet.html" with selected_items=payload.selected_items selected_date=payload.meta.selected_date meta=payload.meta %}
+        </div>
+    </section>
+</div>
+
+<div class="sheet-backdrop is-hidden" id="habit-form-backdrop">
+    <section class="sheet-panel form-sheet" aria-modal="true" role="dialog">
+        <div class="sheet-header">
+            <div>
+                <p class="eyebrow">Create habit</p>
+                <h2>New daily habit</h2>
+            </div>
+            <button type="button" class="close-button" data-action="close-habit-form">Close</button>
+        </div>
+        <form id="habit-form" class="stack-form" action="{% url 'habit_create' %}" method="post">
+            {% csrf_token %}
+            <label for="habit-title">Habit title</label>
+            <input id="habit-title" type="text" name="title" placeholder="Drink water after waking up" required>
+
+            <label for="habit-description">Short note</label>
+            <textarea id="habit-description" name="description" rows="3" placeholder="Keep it simple and repeatable"></textarea>
+
+            <div class="field-row">
+                <div>
+                    <label for="habit-start-date">Start date</label>
+                    <input id="habit-start-date" type="date" name="start_date" value="{{ payload.meta.today }}" required>
+                </div>
+                <div>
+                    <label for="habit-xp">XP reward</label>
+                    <input id="habit-xp" type="number" name="xp_reward" min="10" step="5" value="25">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-button">Save habit</button>
+        </form>
+    </section>
+</div>
+
+<div class="sheet-backdrop is-hidden" id="task-form-backdrop">
+    <section class="sheet-panel form-sheet" aria-modal="true" role="dialog">
+        <div class="sheet-header">
+            <div>
+                <p class="eyebrow">Create task</p>
+                <h2>New to-do</h2>
+            </div>
+            <button type="button" class="close-button" data-action="close-task-form">Close</button>
+        </div>
+        <form id="task-form" class="stack-form" action="{% url 'task_create' %}" method="post">
+            {% csrf_token %}
+            <label for="task-title">Task title</label>
+            <input id="task-title" type="text" name="title" placeholder="Finish portfolio update" required>
+
+            <label for="task-description">Details</label>
+            <textarea id="task-description" name="description" rows="3" placeholder="Context, notes, or checklist"></textarea>
+
+            <div class="field-row">
+                <div>
+                    <label for="task-due-date">Due date</label>
+                    <input id="task-due-date" type="date" name="due_date" value="{{ payload.meta.today }}" required>
+                </div>
+                <div>
+                    <label for="task-reminder">Reminder starts</label>
+                    <input id="task-reminder" type="number" name="reminder_days_before" min="0" max="30" step="1" value="1">
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div>
+                    <label for="task-type">Priority</label>
+                    <select id="task-type" name="type">
+                        <option value="boss">High</option>
+                        <option value="main" selected>Medium</option>
+                        <option value="side">Low</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="task-xp">XP reward</label>
+                    <input id="task-xp" type="number" name="xp_reward" min="10" step="10" value="40">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-button">Save task</button>
+        </form>
+    </section>
+</div>
+
+<div class="sheet-backdrop is-hidden center-backdrop" id="confirm-backdrop">
+    <section class="sheet-panel confirm-panel" aria-modal="true" role="dialog">
+        <div class="sheet-header">
+            <div>
+                <p class="eyebrow">Confirm action</p>
+                <h2 id="confirm-title">Delete item</h2>
+            </div>
+        </div>
+        <div class="sheet-content">
+            <article class="callout-card">
+                <strong id="confirm-heading">Are you sure?</strong>
+                <p id="confirm-copy">This action cannot be undone.</p>
+            </article>
+            <div class="confirm-actions">
+                <button type="button" class="icon-button" data-action="close-confirm">Cancel</button>
+                <button type="button" class="submit-button danger-button" id="confirm-submit">Delete</button>
+            </div>
+        </div>
+    </section>
+</div>
 {% endblock %}

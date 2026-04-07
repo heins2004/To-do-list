@@ -12,6 +12,7 @@ class TaskEndpointTests(TestCase):
                 "title": "Ship MVP",
                 "description": "Deliver dashboard",
                 "due_date": "2026-04-02",
+                "reminder_days_before": 2,
                 "type": "main",
                 "xp_reward": 50,
             },
@@ -19,3 +20,4 @@ class TaskEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Task.objects.count(), 1)
         self.assertTrue(response.json()["ok"])
+        self.assertEqual(Task.objects.get().reminder_days_before, 2)

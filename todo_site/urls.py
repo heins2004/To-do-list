@@ -7,4 +7,5 @@ urlpatterns = [
     path("", include("dashboard.urls")),
     path("tasks/", include("tasks.urls")),
     path("habits/", include("habits.urls")),
+    path("journal/", include("journal.urls")),
 ]

@@ -1,0 +1,32 @@
+<div class="sheet-content">
+    <article class="callout-card">
+        <strong>{{ selected_date }}</strong>
+        <p>Review what is planned on this date or add a new task directly here.</p>
+    </article>
+
+    <div class="selected-day-list">
+        {% for item in selected_items %}
+            <article class="sheet-item {{ item.state }}">
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.kind|title }} | {{ item.meta }}</span>
+            </article>
+        {% empty %}
+            <div class="empty-card compact">Nothing is scheduled on this day yet.</div>
+        {% endfor %}
+    </div>
+
+    <section class="day-note-panel">
+        <div class="title-row compact">
+            <h3>Journal note</h3>
+        </div>
+        {% if selected_note.has_note %}
+            <article class="callout-card journal-readonly">
+                <p>{{ selected_note.content|linebreaksbr }}</p>
+            </article>
+        {% else %}
+            <div class="empty-card compact">No note saved for this date.</div>
+        {% endif %}
+    </section>
+
+    <button type="button" class="submit-button" data-action="open-task-form" data-date="{{ selected_date }}">Add task on this day</button>
+</div>
