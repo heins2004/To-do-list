@@ -1,10 +1,18 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 
 class Habit(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="habits",
+        null=True,
+        blank=True,
+    )
     title = models.CharField(max_length=160)
     streak_count = models.PositiveIntegerField(default=0)
     last_completed = models.DateField(blank=True, null=True)

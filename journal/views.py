@@ -1,12 +1,14 @@
 import json
 from datetime import date
 
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import DailyNote
 
 
+@login_required
 @require_POST
 def save_daily_note(request):
     body = json.loads(request.body or "{}")
@@ -15,11 +17,12 @@ def save_daily_note(request):
 
     if content:
         note, _ = DailyNote.objects.update_or_create(
+            owner=request.user,
             date=target_date,
             defaults={"content": content},
         )
     else:
-        DailyNote.objects.filter(date=target_date).delete()
+        DailyNote.objects.filter(owner=request.user, date=target_date).delete()
         note = None
 
     return JsonResponse(
@@ -32,10 +35,11 @@ def save_daily_note(request):
     )
 
 
+@login_required
 @require_GET
 def get_daily_note(request, note_date):
     target_date = date.fromisoformat(note_date)
-    note = DailyNote.objects.filter(date=target_date).first()
+    note = DailyNote.objects.filter(owner=request.user, date=target_date).first()
     return JsonResponse(
         {
             "ok": True,

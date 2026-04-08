@@ -16,6 +16,7 @@
         day: document.querySelector("#day-sheet-backdrop"),
         habitForm: document.querySelector("#habit-form-backdrop"),
         taskForm: document.querySelector("#task-form-backdrop"),
+        profileForm: document.querySelector("#profile-form-backdrop"),
         confirm: document.querySelector("#confirm-backdrop"),
     };
     const confirmState = { action: null, id: null };
@@ -107,6 +108,40 @@
             yearPicker.value = payload.calendar.selected_year;
         }
         bindJournalAutosave();
+    }
+
+    function refreshUserProfile(user) {
+        if (!user) {
+            return;
+        }
+        const displayName = document.querySelector("#user-display-name");
+        if (displayName) {
+            displayName.textContent = user.display_name;
+        }
+        const firstName = document.querySelector("#profile-first-name");
+        const username = document.querySelector("#profile-username");
+        const email = document.querySelector("#profile-email");
+        const currentPassword = document.querySelector("#profile-current-password");
+        const newPassword1 = document.querySelector("#profile-new-password1");
+        const newPassword2 = document.querySelector("#profile-new-password2");
+        if (firstName) {
+            firstName.value = user.first_name || "";
+        }
+        if (username) {
+            username.value = user.username || "";
+        }
+        if (email) {
+            email.value = user.email || "";
+        }
+        if (currentPassword) {
+            currentPassword.value = "";
+        }
+        if (newPassword1) {
+            newPassword1.value = "";
+        }
+        if (newPassword2) {
+            newPassword2.value = "";
+        }
     }
 
     async function request(url, options) {
@@ -284,6 +319,28 @@
         }
     });
 
+    document.querySelector("#profile-form")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+            const result = await request(event.currentTarget.action, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": state.csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: new FormData(event.currentTarget),
+            });
+            refreshUI(result.payload);
+            refreshUserProfile(result.user);
+            toggleSheet("profileForm", false);
+            event.currentTarget.reset();
+            refreshUserProfile(result.user);
+            showToast(result.message || "Updated.");
+        } catch (error) {
+            showToast(error.message);
+        }
+    });
+
     document.addEventListener("click", async (event) => {
         const trigger = event.target.closest("[data-action]");
         if (!trigger) {
@@ -376,6 +433,10 @@
             } else if (action === "open-task-form") {
                 presetTaskDate(trigger.dataset.date);
                 toggleSheet("taskForm", true);
+            } else if (action === "open-profile-form") {
+                toggleSheet("profileForm", true);
+            } else if (action === "close-profile-form") {
+                toggleSheet("profileForm", false);
             } else if (action === "close-task-form") {
                 toggleSheet("taskForm", false);
                 const input = document.querySelector("#task-due-date");
@@ -445,6 +506,10 @@
 
     if (state.payload.alerts?.has_items) {
         window.setTimeout(() => toggleSheet("alert", true), 450);
+    }
+
+    if (backdrops.profileForm?.dataset.openOnLoad === "true") {
+        toggleSheet("profileForm", true);
     }
 
     applyTheme(state.theme);

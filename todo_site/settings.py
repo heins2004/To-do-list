@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "habits",
     "dashboard",
     "journal",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -171,6 +172,9 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboard_home"
+LOGOUT_REDIRECT_URL = "login"
 
 
 SECURE_BROWSER_XSS_FILTER = not DEBUG

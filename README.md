@@ -13,6 +13,7 @@ It is designed around two core flows:
 - To-do list with due dates, reminder windows, and overdue states
 - Monthly calendar with date selection and note indicators
 - Daily journal/notes saved per date
+- Account login, registration, profile editing, and password change
 - XP, levels, and achievement badges
 - Dark and light mode with saved preference
 - Inline interactions using AJAX without full page reloads
@@ -105,6 +106,7 @@ After the build completes, open the generated Render URL.
 ### Notes
 
 - Review `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS` for your production domain if needed.
+- `render.yaml` now sets `DJANGO_SECRET_KEY` directly for production auth/session handling.
 - If you use the free tier, expect service spin-down and free database limits.
 
 ## Project Structure

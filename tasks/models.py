@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -12,6 +13,13 @@ class Task(models.Model):
         (TYPE_BOSS, "Boss Fight"),
     ]
 
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+        null=True,
+        blank=True,
+    )
     title = models.CharField(max_length=160)
     description = models.TextField(blank=True)
     due_date = models.DateField(default=timezone.localdate)

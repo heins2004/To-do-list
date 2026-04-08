@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="auth-shell">
+    <div class="ambient-orb orb-one"></div>
+    <div class="ambient-orb orb-two"></div>
+
+    <section class="auth-frame">
+        <aside class="auth-showcase">
+            <p class="eyebrow">Personal command deck</p>
+            <h1>DoMatrix</h1>
+            <p class="auth-copy">Track the work that matters, keep routines visible, and make your dashboard feel like your own control room.</p>
+            <div class="auth-metrics">
+                <article class="auth-metric-card">
+                    <span>Routines</span>
+                    <strong>Habits, tasks, notes</strong>
+                    <small>Everything stays grouped under your account.</small>
+                </article>
+                <article class="auth-metric-card">
+                    <span>Flow</span>
+                    <strong>Fast daily reset</strong>
+                    <small>Jump back into today without rebuilding context.</small>
+                </article>
+            </div>
+        </aside>
+
+        <section class="auth-panel">
+            <div class="auth-panel-header">
+                <a href="{% url 'login' %}" class="auth-mini-link">Login</a>
+                <a href="{% url 'register' %}" class="auth-mini-link">Register</a>
+            </div>
+            {% block auth_content %}{% endblock %}
+        </section>
+    </section>
+</main>
+{% endblock %}

@@ -18,7 +18,7 @@ services:
         fromDatabase:
           name: habit-tracker-db
           property: connectionString
-      - key: SECRET_KEY
+      - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG
         value: "False"

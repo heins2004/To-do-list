@@ -1,6 +1,7 @@
 import json
 from datetime import date, timedelta
 
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -32,21 +33,25 @@ def sync_habit_progress(habit: Habit) -> None:
     habit.save(update_fields=["last_completed", "streak_count"])
 
 
+@login_required
 @require_POST
 def create_habit(request):
     form = HabitForm(request.POST)
     if not form.is_valid():
         return JsonResponse({"ok": False, "errors": form.errors}, status=400)
 
-    habit = form.save()
-    ensure_achievements()
-    payload = build_dashboard_payload(selected_date=habit.start_date)
+    habit = form.save(commit=False)
+    habit.owner = request.user
+    habit.save()
+    ensure_achievements(request.user)
+    payload = build_dashboard_payload(request.user, selected_date=habit.start_date)
     return JsonResponse({"ok": True, "message": "Habit forged.", "payload": payload})
 
 
+@login_required
 @require_POST
 def toggle_habit(request, pk):
-    habit = get_object_or_404(Habit, pk=pk)
+    habit = get_object_or_404(Habit, pk=pk, owner=request.user)
     body = json.loads(request.body or "{}")
     target_date = date.fromisoformat(body.get("date")) if body.get("date") else timezone.localdate()
 
@@ -66,22 +71,24 @@ def toggle_habit(request, pk):
         habit.save(update_fields=["last_completed", "streak_count"])
         completed = True
 
-    update_achievements()
-    payload = build_dashboard_payload(selected_date=target_date)
+    update_achievements(user=request.user)
+    payload = build_dashboard_payload(request.user, selected_date=target_date)
     return JsonResponse({"ok": True, "completed": completed, "payload": payload})
 
 
+@login_required
 @require_POST
 def delete_habit(request, pk):
-    habit = get_object_or_404(Habit, pk=pk)
+    habit = get_object_or_404(Habit, pk=pk, owner=request.user)
     habit.delete()
-    payload = build_dashboard_payload()
+    payload = build_dashboard_payload(request.user)
     return JsonResponse({"ok": True, "message": "Habit archive removed.", "payload": payload})
 
 
+@login_required
 @require_POST
 def skip_habit(request, pk):
-    habit = get_object_or_404(Habit, pk=pk)
+    habit = get_object_or_404(Habit, pk=pk, owner=request.user)
     body = json.loads(request.body or "{}")
     target_date = date.fromisoformat(body.get("date")) if body.get("date") else timezone.localdate()
     reason = (body.get("reason") or "").strip()[:200]
@@ -96,16 +103,17 @@ def skip_habit(request, pk):
         defaults={"reason": reason},
     )
     sync_habit_progress(habit)
-    update_achievements()
-    payload = build_dashboard_payload(selected_date=target_date)
+    update_achievements(user=request.user)
+    payload = build_dashboard_payload(request.user, selected_date=target_date)
     return JsonResponse({"ok": True, "message": "Habit skipped for today.", "payload": payload})
 
 
+@login_required
 @require_POST
 def undo_skip_habit(request, pk):
-    habit = get_object_or_404(Habit, pk=pk)
+    habit = get_object_or_404(Habit, pk=pk, owner=request.user)
     body = json.loads(request.body or "{}")
     target_date = date.fromisoformat(body.get("date")) if body.get("date") else timezone.localdate()
     HabitSkip.objects.filter(habit=habit, date=target_date).delete()
-    payload = build_dashboard_payload(selected_date=target_date)
+    payload = build_dashboard_payload(request.user, selected_date=target_date)
     return JsonResponse({"ok": True, "message": "Habit skip removed.", "payload": payload})

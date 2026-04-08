@@ -2,6 +2,7 @@ import calendar
 from collections import Counter
 from datetime import date, timedelta
 
+from django.contrib.auth import get_user_model
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Prefetch
 from django.template.loader import render_to_string
@@ -15,6 +16,7 @@ from .models import Achievement, Progress
 
 
 XP_PER_LEVEL = 250
+User = get_user_model()
 ACHIEVEMENT_DEFINITIONS = [
     {"name": "First Blood", "kind": Achievement.KIND_TASKS, "threshold": 1, "description": "Complete your first quest.", "icon": "SB"},
     {"name": "Task Hunter", "kind": Achievement.KIND_TASKS, "threshold": 10, "description": "Clear 10 tasks.", "icon": "TH"},
@@ -24,20 +26,21 @@ ACHIEVEMENT_DEFINITIONS = [
 ]
 
 
-def ensure_achievements() -> None:
+def ensure_achievements(user: User) -> None:
     for definition in ACHIEVEMENT_DEFINITIONS:
-        Achievement.objects.get_or_create(name=definition["name"], defaults=definition)
+        Achievement.objects.get_or_create(owner=user, name=definition["name"], defaults={**definition, "owner": user})
 
 
-def get_progress() -> Progress:
-    ensure_achievements()
-    progress, _ = Progress.objects.get_or_create(pk=1)
+def get_progress(user: User) -> Progress:
+    ensure_achievements(user)
+    progress, _ = Progress.objects.get_or_create(owner=user)
     return recalculate_progress(progress)
 
 
 def recalculate_progress(progress: Progress) -> Progress:
-    task_xp = sum(task.xp_reward for task in Task.objects.filter(completed=True))
-    habits = Habit.objects.prefetch_related("logs")
+    user = progress.owner
+    task_xp = sum(task.xp_reward for task in Task.objects.filter(owner=user, completed=True))
+    habits = Habit.objects.filter(owner=user).prefetch_related("logs")
     habit_xp = sum(habit.logs.count() * habit.xp_reward for habit in habits)
     total_xp = task_xp + habit_xp
     progress.xp = total_xp
@@ -47,16 +50,17 @@ def recalculate_progress(progress: Progress) -> Progress:
     return progress
 
 
-def update_achievements(progress: Progress | None = None) -> None:
-    ensure_achievements()
-    progress = progress or get_progress()
-    completed_tasks = Task.objects.filter(completed=True).count()
-    habits = Habit.objects.prefetch_related("logs")
+def update_achievements(user: User | None = None, progress: Progress | None = None) -> None:
+    progress = progress or get_progress(user)
+    user = progress.owner
+    ensure_achievements(user)
+    completed_tasks = Task.objects.filter(owner=user, completed=True).count()
+    habits = Habit.objects.filter(owner=user).prefetch_related("logs")
     habit_completions = sum(habit.logs.count() for habit in habits)
     top_streak = max((habit.streak_count for habit in habits), default=0)
     now = timezone.now()
 
-    for achievement in Achievement.objects.all():
+    for achievement in Achievement.objects.filter(owner=user):
         metric = {
             Achievement.KIND_TASKS: completed_tasks,
             Achievement.KIND_HABITS: habit_completions,
@@ -70,12 +74,12 @@ def update_achievements(progress: Progress | None = None) -> None:
             achievement.save(update_fields=["unlocked", "unlocked_at"])
 
 
-def build_dashboard_payload(selected_date: date | None = None) -> dict:
+def build_dashboard_payload(user: User, selected_date: date | None = None) -> dict:
     today = timezone.localdate()
     selected_date = selected_date or today
 
     habits = list(
-        Habit.objects.prefetch_related(
+        Habit.objects.filter(owner=user).prefetch_related(
             Prefetch("logs", queryset=HabitLog.objects.order_by("-completed_on")),
             Prefetch("skips", queryset=HabitSkip.objects.order_by("-date")),
         )
@@ -83,10 +87,10 @@ def build_dashboard_payload(selected_date: date | None = None) -> dict:
     for habit in habits:
         habit.refresh_streak(today=today)
 
-    tasks = list(Task.objects.all())
-    notes = list(DailyNote.objects.all())
+    tasks = list(Task.objects.filter(owner=user))
+    notes = list(DailyNote.objects.filter(owner=user))
     note_map = {note.date: note for note in notes}
-    progress = get_progress()
+    progress = get_progress(user)
     calendar_data = build_calendar(tasks, habits, selected_date, note_map)
     selected_items = build_selected_items(selected_date, tasks, habits, today)
     weekly_habit_graph = build_weekly_habit_graph(habits, today)
@@ -117,7 +121,7 @@ def build_dashboard_payload(selected_date: date | None = None) -> dict:
     xp_needed = max(1, next_level_xp - previous_level_xp)
     level_percent = int((xp_progress / xp_needed) * 100)
     top_streak = max((habit.streak_count for habit in habits), default=0)
-    achievements = [serialize_achievement(item) for item in Achievement.objects.all()]
+    achievements = [serialize_achievement(item) for item in Achievement.objects.filter(owner=user)]
     serialized_tasks = [serialize_task(task, today) for task in tasks]
     serialized_habits = [serialize_habit(habit, today, selected_date) for habit in habits]
     home_habits = [habit for habit in serialized_habits if habit["start_date"] <= today.isoformat()]

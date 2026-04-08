@@ -1,0 +1,38 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Login | DoMatrix{% endblock %}
+
+{% block auth_content %}
+<div class="auth-copy-block">
+    <p class="eyebrow">Welcome back</p>
+    <h2>Enter your command center</h2>
+    <p class="subcopy">Sign in to load your routines, today’s tasks, and journal timeline.</p>
+</div>
+
+<form method="post" class="stack-form auth-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+        <div class="auth-feedback error">{{ form.non_field_errors|striptags }}</div>
+    {% endif %}
+
+    <label for="{{ form.username.id_for_label }}">Username</label>
+    {{ form.username }}
+    {% if form.username.errors %}
+        <div class="auth-feedback error">{{ form.username.errors|striptags }}</div>
+    {% endif %}
+
+    <label for="{{ form.password.id_for_label }}">Password</label>
+    {{ form.password }}
+    {% if form.password.errors %}
+        <div class="auth-feedback error">{{ form.password.errors|striptags }}</div>
+    {% endif %}
+
+    {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+    {% endif %}
+
+    <button type="submit" class="submit-button">Login</button>
+</form>
+
+<p class="auth-footnote">New here? <a href="{% url 'register' %}">Create an account</a></p>
+{% endblock %}
