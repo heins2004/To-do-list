@@ -194,14 +194,3 @@ manage.py      Django management entry point
 - `templates/dashboard/index.html`: root dashboard template
 - `static/js/app.js`: client-side interactions and partial refresh handling
 
-## Behavior Summary
-
-- Each user owns their own tasks, habits, notes, progress, and achievements
-- Habit completion and skip actions are date-aware rather than only "today"-aware
-- Overdue task state is derived dynamically from `due_date` and `completed`
-- Notes are stored per calendar date and surfaced in both the calendar and selected-day views
-- The dashboard computes both raw counts and presentation-oriented metadata for the UI
-
-## License
-
-No license file is currently present in the repository. Add one before distributing the project publicly.
