@@ -1,11 +1,25 @@
 name: Keep Render Alive
+
 on:
   schedule:
-    - cron: '*/10 * * * *'  # runs every 10 minutes
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Render App
-        run: curl https://habit-tracker-dashboard-pgo7.onrender.com/
+      - name: Ping Render app
+        env:
+          PING_URL: ${{ secrets.RENDER_PING_URL }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "RENDER_PING_URL secret is not set."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --location \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            "$PING_URL"
