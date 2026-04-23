@@ -3,9 +3,15 @@ from datetime import date
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from .services import build_dashboard_payload, payload_json
+
+
+@require_GET
+def ping(request):
+    return JsonResponse({"ok": True, "status": "alive", "timestamp": timezone.now().isoformat()})
 
 
 @login_required
